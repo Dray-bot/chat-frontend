@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import gsap from "gsap";
 
-// Safe import for dayjs
 let dayjs;
 try {
   dayjs = require("dayjs");
@@ -33,15 +32,15 @@ export default function ChatComponent() {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
-  const lastMsgRef = useRef(null);
+  const lastMsgRef = useRef(false);
 
-  // Time formatter
   const formatTime = (date) => {
     if (!date) return "";
     if (dayjs) return dayjs(date).format("h:mm A");
     return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  // Initialize socket
   useEffect(() => {
     if (!user) return;
     if (socketRef.current) return;
@@ -56,11 +55,14 @@ export default function ChatComponent() {
     });
 
     socketRef.current.on("load_messages", (msgs) => setMessages(msgs));
+
     socketRef.current.on("receive_message", (msg) => {
       setMessages((prev) => [...prev, msg]);
       lastMsgRef.current = true;
     });
+
     socketRef.current.on("online_users", (users) => setOnlineUsers(users));
+
     socketRef.current.on("typing", ({ userName }) => setTypingUser(userName));
     socketRef.current.on("stop_typing", () => setTypingUser(null));
 
@@ -72,10 +74,19 @@ export default function ChatComponent() {
     };
   }, [user]);
 
+  // Join chat room on chatId change
+  useEffect(() => {
+    if (socketRef.current && chatId) {
+      socketRef.current.emit("join_chat", chatId);
+    }
+  }, [chatId]);
+
+  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Animate last message
   useEffect(() => {
     if (lastMsgRef.current) {
       const el = document.querySelector(".msg-bubble:last-child");
@@ -86,22 +97,21 @@ export default function ChatComponent() {
           { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "power2.out" }
         );
       }
-      lastMsgRef.current = null;
+      lastMsgRef.current = false;
     }
   }, [messages]);
 
   const sendMessage = () => {
     if (!message.trim() || !socketRef.current || !user) return;
+
     const msg = {
       chatId,
       senderId: user.id,
       userName: user.firstName || user.username || "Anon",
       text: message.trim(),
       createdAt: new Date().toISOString(),
-      status: "sent",
     };
-    setMessages((prev) => [...prev, msg]);
-    lastMsgRef.current = true;
+
     socketRef.current.emit("send_message", msg);
     setMessage("");
   };
@@ -123,11 +133,17 @@ export default function ChatComponent() {
       socketRef.current = null;
     }
     await signOut();
-    router.push("/"); // go back to home page
+    router.push("/");
+  };
+
+  const startPrivateChat = (otherUser) => {
+    const roomId = [user.id, otherUser.userId].sort().join("_");
+    setChatId(roomId);
+    setChatTitle(otherUser.userName);
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-b from-white via-purple-50 to-white">
+    <div className="flex h-screen bg-gradient-to-b from-white via-purple-50 to-white overflow-hidden">
       {/* Sidebar */}
       <aside
         className={`bg-white/95 backdrop-blur-sm border-r border-purple-100 z-30 transform transition-all duration-300
@@ -157,7 +173,7 @@ export default function ChatComponent() {
               .map((u) => (
                 <li
                   key={u.userId}
-                  onClick={() => setChatId(u.userId)}
+                  onClick={() => startPrivateChat(u)}
                   className="flex items-center gap-2 p-2 rounded-lg hover:bg-purple-50 cursor-pointer"
                 >
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-purple-300 to-purple-500 flex items-center justify-center text-white font-semibold">
@@ -180,7 +196,6 @@ export default function ChatComponent() {
             General
           </button>
 
-          {/* Motion Logout Button */}
           <motion.button
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -194,7 +209,6 @@ export default function ChatComponent() {
 
       {/* Main Chat */}
       <main className="flex-1 flex flex-col">
-        {/* Top bar */}
         <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-white/80 backdrop-blur-sm border-b border-purple-100">
           <h2 className={`${pacifico.className} text-xl sm:text-2xl text-purple-700 truncate`}>{chatTitle}</h2>
           <button onClick={toggleSidebar} className="sm:hidden p-2 rounded-md bg-purple-100 text-purple-700">
@@ -202,7 +216,6 @@ export default function ChatComponent() {
           </button>
         </header>
 
-        {/* Messages */}
         <section className="flex-1 overflow-auto p-3 sm:p-6">
           <div className="grid grid-cols-1 gap-3 max-w-3xl mx-auto">
             <AnimatePresence initial={false}>
@@ -234,7 +247,6 @@ export default function ChatComponent() {
           </div>
         </section>
 
-        {/* Input */}
         <footer className="p-3 sm:p-4 bg-white border-t border-purple-100">
           <div className="max-w-3xl mx-auto flex items-center gap-2 sm:gap-3">
             <input
@@ -245,7 +257,7 @@ export default function ChatComponent() {
               }}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               placeholder="Type a message..."
-              className=" text-gray-800 flex-1 rounded-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-purple-400 focus:ring-2 focus:ring-purple-500"
+              className="text-gray-800 flex-1 rounded-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-purple-400 focus:ring-2 focus:ring-purple-500"
             />
             <motion.button
               whileHover={{ scale: 1.05, y: -2 }}
