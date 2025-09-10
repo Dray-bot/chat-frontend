@@ -147,9 +147,7 @@ export default function ChatComponent() {
     <div className="flex h-screen w-screen overflow-hidden bg-gradient-to-b from-white via-purple-50 to-white">
       {/* Sidebar */}
       <aside
-        className={`bg-white/95 backdrop-blur-sm border-r border-purple-100 fixed sm:relative top-0 left-0 h-full z-30 transition-all duration-300 ${
-          sidebarOpen ? "w-64" : "w-0 sm:w-64"
-        } overflow-hidden flex flex-col`}
+        className={`bg-white/95 backdrop-blur-sm border-r border-purple-100 fixed sm:relative top-0 left-0 h-full z-30 transition-all duration-300 ${sidebarOpen ? "w-64" : "w-0 sm:w-64"} overflow-hidden flex flex-col`}
       >
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
@@ -175,21 +173,19 @@ export default function ChatComponent() {
             {onlineUsers.length === 0 && (
               <li className="px-3 py-2 text-sm text-gray-500">No one online</li>
             )}
-            {onlineUsers
-              .filter((u) => u.userId !== user?.id)
-              .map((u) => (
-                <li
-                  key={u.userId}
-                  onClick={() => startPrivateChat(u)}
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-purple-50 cursor-pointer"
-                >
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-purple-300 to-purple-500 flex items-center justify-center text-white font-semibold">
-                    {u.userName?.charAt(0) || "?"}
-                  </div>
-                  <div className="text-sm font-medium text-gray-800 truncate">{u.userName}</div>
-                  <div className="ml-auto w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Online"></div>
-                </li>
-              ))}
+            {onlineUsers.filter((u) => u.userId !== user?.id).map((u) => (
+              <li
+                key={u.userId}
+                onClick={() => startPrivateChat(u)}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-purple-50 cursor-pointer"
+              >
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-purple-300 to-purple-500 flex items-center justify-center text-white font-semibold">
+                  {u.userName?.charAt(0) || "?"}
+                </div>
+                <div className="text-sm font-medium text-gray-800 truncate">{u.userName}</div>
+                <div className="ml-auto w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Online"></div>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -215,11 +211,9 @@ export default function ChatComponent() {
       <main className="flex-1 flex flex-col ml-0 sm:ml-64 h-full">
         <header
           id="chat-header"
-          className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-white/90 backdrop-blur-sm border-b border-purple-100 sticky top-0 z-10"
+          className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-white/90 backdrop-blur-sm border-b border-purple-100 sticky top-0 z-10 sm:relative"
         >
-          <h2 className={`${pacifico.className} text-xl sm:text-2xl text-purple-700 truncate`}>
-            {chatTitle}
-          </h2>
+          <h2 className={`${pacifico.className} text-xl sm:text-2xl text-purple-700 truncate`}>{chatTitle}</h2>
           <button
             onClick={toggleSidebar}
             className="sm:hidden p-2 rounded-md bg-purple-100 text-purple-700 relative group"
@@ -273,7 +267,7 @@ export default function ChatComponent() {
 
         <footer
           id="chat-footer"
-          className="p-3 sm:p-4 bg-white border-t border-purple-100 sticky bottom-0"
+          className="p-3 sm:p-4 bg-white border-t border-purple-100 sticky bottom-0 z-10 sm:relative"
         >
           <div className="flex items-center gap-2 sm:gap-3 max-w-full mx-auto">
             <input
